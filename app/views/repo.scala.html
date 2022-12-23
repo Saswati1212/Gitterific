@@ -1,0 +1,106 @@
+@(Details: models.RepositoryCollatedData)
+
+
+<section id="content" style="text-align:center; padding: 10px 40px;background: linear-gradient(#95cedf, #5f8880);min-height: 700px">
+	<div style="font-size: 20px"><h2>Repository Name: <b><u>@Details.repoName.toUpperCase()</u></b></h2></div>
+	<div style="padding: 8px; text-align: center;border-bottom: 2px solid #fff;">
+		<div style="margin: 20px;padding-bottom: 30px;border-bottom: 2px solid #fff;">
+			<div style="padding: 16px;"><b>Repository Details</b></div>
+			<table style="width: 100%">
+				<tbody style="text-align: center;">
+					<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">User</td>
+						<td style="background-color: #e0d8d8;"><a href="/userRepoList/@Details.userName">@Details.userName</a></td>
+					</tr> 
+					<tr style="height: 50px ">
+						<td style="padding: 10px; background-color: #fff">Description</td>
+						<td style="background-color: #e0d8d8;">@Details.desc</td>
+					</tr>
+					<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">Language</td>
+						<td style="background-color: #e0d8d8;"><b>@Details.lang</b></td>
+					</tr>
+				  	<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">Open Issues</td>
+						<td style="background-color: #e0d8d8;"><b>@Details.noOfIssues</b></td>
+					</tr>
+					<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">Created On</td>
+						<td style="background-color: #e0d8d8;"><b>@Details.createdOn</b></td>
+					</tr>
+					<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">Repo Size</td>
+						<td style="background-color: #e0d8d8;"><b>@Details.size MB</b></td>
+					</tr>
+					<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">Watch Count</td>
+						<td style="background-color: #e0d8d8;"><b>@Details.watch</b></td>
+					</tr>
+					<tr>
+						<td style="padding: 10px; background-color: #fff;width:50%">Starred</td>
+						<td style="background-color: #e0d8d8;"><b>@Details.stars</b></td>
+					</tr>
+				</tbody> 
+			</table>
+			<table style="width: 100%">
+
+				<tbody style="text-align: center;">
+					<tr>
+						<td style="padding: 10px; background-color: #fff">Committer</td>
+						<td style="padding: 10px; background-color: #fff">Min-additions</td>
+						<td style="padding: 10px; background-color: #fff">Max-additions</td>
+						<td style="padding: 10px; background-color: #fff">Avg-additions</td>
+						<td style="padding: 10px; background-color: #fff">Min-deletions</td>
+						<td style="padding: 10px; background-color: #fff">Max-deletions</td>
+						<td style="padding: 10px; background-color: #fff">Avg-deletions</td>
+					</tr>
+				</tbody> 
+			</table>	
+		</div>
+		<div id="Issues" style="padding-bottom: 30px;border-bottom: 2px solid #fff;">
+			<div>
+				<h3 style="font-size: 30px"><u>Latest @Details.listOfIssues.size()</span> issues </u></h3>
+				<button style="margin-bottom: 20px; font-size: 24px;" onclick="window.location.href='/wordStats/';">Issue Statistics</button>
+				<table style="width: 100%">
+				<thead style="background-color: #000; padding: 10px; height:50px ;">
+					<tr>
+						<th style="color:#fff">#</th>
+						<th style="color:#fff">State</th>
+						<th style="color:#fff">Title</th>
+						<th style="color:#fff">Created On</th>	 
+					</tr>
+				</thead>	
+					
+				  <tbody style="background-color: #dee2e1; text-align: center;">
+						@for(issue <- Details.listOfIssues){
+						<tr style="height: 50px ">
+							<td style="padding: 10px;">#@issue.repoIssueNo</td> 
+							<td style="padding: 10px;">@issue.repoIssueState</span></td>
+							<td style="padding: 10px;">@issue.repoIssueTitle</td>
+							<td style="padding: 10px;">@issue.repoIssueCreatedOn </td>
+						</tr> 
+						}
+				  </tbody> 
+				</table>
+			</div>
+		</div>
+		<div id="Collaborators">
+			<div  style="padding-bottom: 24px;">
+				<h3 style="font-size: 30px"><u>Collaborators</u></h3>
+				<div style="display: flex; overflow-x: scroll;">
+				@for(Collaborator <- Details.listOfCollaborators){
+					<div style="display: flex">
+						<div style="padding-right:16px">
+							<td><img style="border-radius: 50%;" src=@Collaborator.repoCollaboratorsUrl alt="user_img" width="100" height="100"></td>
+							<td><button style="cursor: pointer; height: 20px; margin: 20px 0" onclick="window.location.href='/userRepoList/@Details.userName';">@Collaborator.repoCollaboratorsName.toUpperCase()</button></td>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+		<button style="margin-bottom: 20px; font-size: 24px;"  onclick="window.location.href='/';"> Commits</button>
+</section>
+
+		
+
+ 

@@ -1,0 +1,21 @@
+@(mapList:Map[String,Integer], keys: ArrayList[String])
+
+<section id="content" style="text-align:center; padding: 10px 40px;background: linear-gradient(#95cedf, #5f8880);min-height: 700px">
+	<div style="font-size: 20px"><h2>Word Level Issues Statistics</u></b></h2></div>
+    <table style="margin-top: 20px; width: 100%">
+        <thead style="background-color: #fff; height:50px;">
+        <tr>
+            <th style="width: 50%; background-color: #000; color: #fff;">WORD</th>
+            <th style="background-color: #000; color: #fff;">COUNT</th>
+        </tr>
+        </thead>
+        <tbody style="background-color: #fff; text-align: center;">
+            @for(key <- keys){
+            <tr style="height: 45px ">
+                <td style="text-decoration: none;">@key</a></td>
+                <td style="text-decoration: none;">@mapList.get(key)</a></td>
+            </tr>
+        }
+    </tbody> 
+  </table>
+</section>

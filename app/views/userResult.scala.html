@@ -1,0 +1,54 @@
+@(myUSer: User, owner: String)
+
+<!DOCTYPE html>
+<html lang="en">
+<head >
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>User:@myUSer.getLogin()</title>
+</head>
+<body  style="text-align:center; padding: 10px 40px;background: linear-gradient(#95cedf, #5f8880);min-height: 700px">
+<h2 >User Profile</h2>
+
+
+
+<div>
+    <h4><b>User ID : </b>@myUSer.getLogin()</h4>
+
+    @if(myUSer.getName() == "null") {
+    <h4><b>User Name : </b> Not Available </h4>
+    } else {
+    <h4><b>Full Name : </b>@myUSer.getName()</h4>
+    }
+<!--    <h4><b>Repository Id : </b>@myUSer.getRepoId()</h4>-->
+
+    <h3 >Repository List</h3>
+    <table style="margin-top: 20px">
+        <thead style="background-color: #fff; height:50px;">
+        <tr>
+            <th scope="col">Repository Name</th>
+            <th scope="col">Repository Description</th>
+
+        </tr>
+        </thead>
+        <tbody style="background-color: #fff; text-align: center;">
+        @for(repository <- myUSer.getRepositories()) {
+        <tr style="height: 50px ">
+            <td style="text-decoration: none;"><a href="/repo/@owner/@repository.getName()/@repository.getRepoId()">@repository.getName()</a></td>
+
+            @if(repository.getDescription() == "null") {
+            <td style="text-decoration: none;">Not Available</td>
+            } else {
+            <td style="text-decoration: none;">@repository.getDescription()</td>
+            }
+
+        </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

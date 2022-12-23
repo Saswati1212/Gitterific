@@ -1,0 +1,72 @@
+@(request:play.mvc.Http.Request)
+
+@main2(request, "welcome to play"){
+
+<section id="content"
+         style="text-align:center; padding: 10px 40px;background: linear-gradient(#95cedf, #5f8880);min-height: 700px">
+    <div id="search-page" class="container">
+        <div>
+            <h1>Welcome to Gitterific</h1>
+            <form name="search" id="form" action="/" method="GET">
+                <input type="text" name="search" id="search" value="" placeholder="Enter search terms"
+                       style="background: none; height: 35px; width: 60%; outline: none; border: none; border-bottom: 1px solid #000"/>
+                <button type="submit"
+                        style="margin-left: 20px; background:none; height: 35px; border: none;font-size: 24px;">
+                    <span>✅</span></button>
+            </form>
+        </div>
+    </div>
+    <div class = "container">
+
+        <div id = "search-page-results" class="resultsWrapper"
+             style="display:none; justify-content: center; margin-top: 20px; border-top: 2px solid #fff; padding-top: 20px">
+             <!-- <div style="text-align: left;">Searched terms ())
+				<ul>
+	  				<li style="list-style-type: none">- </li>
+				</ul>
+			</div> -->
+            <div>
+                <!-- <span style="display:inline-block;margin-left: 10px;font-size: 20px;"><i>Search results for </i></span> -->
+                <table id="repoTable" style="margin-top: 20px;border-spacing: 2px; text-align-last: center;border-collapse: separate;">
+                    <thead style="background-color: #fff; height:50px;">
+                    <tr>
+                        <th>USER</th>
+                        <th>REPOSITORY</th>
+                        <th>TOPICS</th>
+
+                    </tr>
+                    </thead>
+                    <tbody style="background-color: #fff; text-align: center;">
+
+                    <tr style="height: 45px ">
+                        <td><a id="userName" href="/"
+                               style="text-decoration: none;"></a></td>
+                        <td><a id="repoName" href="/" style="text-decoration: none;"></a>
+                        </td>
+                        <td>
+                            <div style="display: none; padding: 2px;;">
+
+                                No topic listed
+
+                            </div>
+                            <div style="display: inline-block;border-bottom: 3px solid #a4c2d4; padding: 2px;"><a
+                                    href="/" style="color: black; text-decoration: none;"><i id="topic"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+          </div>
+        <div id="repository-details">
+        </div>
+        <div id = "topic-page-result">
+        </div>
+        <div id="user-details-result">
+
+        </div>
+        <div id="repo-page-result">
+        </div>
+    </div>
+</section>
+}

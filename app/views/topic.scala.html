@@ -1,0 +1,43 @@
+@(globalRepo : List[TopicResult],topic:String)
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <meta charset="UTF-8">
+    <title>TopicList</title>
+</head>
+
+<body style="text-align:center; padding: 10px 40px;background: linear-gradient(#95cedf, #5f8880);min-height: 700px">
+    <h2>Searched topic (@topic)</h2>
+    <div class="resultsWrapper" style="display:flex; justify-content: center; margin-top: 20px; border-top: 2px solid #fff; padding-top: 20px">
+        <table style="margin-top: 20px">
+            <thead style="background-color: #fff; height:50px;">
+            <tr>
+                <th>USER</th>
+                <th>REPOSITORY</th>
+                <th>TOPICS</th>
+
+            </tr>
+            </thead>
+            <tbody style="background-color: #fff; text-align: center;">
+            
+                @for(item <- globalRepo) {
+                <tr style="height: 45px ">
+                    <td><a href="/userRepoList/@item.getUser()" style="text-decoration: none;">@item.getUser()</a></td>
+                    <td><a href="/repo/@item.getUser()/@item.getRepo/@item.getRepoId()" style="text-decoration: none;">@item.getRepo()</a></td>
+                    <td>
+                        @for(topic <- item.getTopics()){
+                        <div style="display: inline-block;border-bottom: 3px solid #a4c2d4; padding: 2px;"><a href="/topics/@topic" style="color: black; text-decoration: none;"><i>@topic</i></a></div> 
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody> 
+    </table>
+    </div>
+</body>
+</html>      
