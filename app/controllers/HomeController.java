@@ -1,14 +1,6 @@
 package controllers;
 
-import actors.SupervisorActor;
-import actors.TimeActor;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
 import models.User;
-
-import play.cache.AsyncCacheApi;
-import play.libs.concurrent.HttpExecutionContext;
-import play.libs.streams.ActorFlow;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
@@ -27,8 +19,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import play.mvc.WebSocket;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import models.ApiResults;
 import models.DataFormatter;
 import models.RepositoryCollatedData;
@@ -39,22 +30,6 @@ import models.RepoResultsDisplay;
 import services.TopicService;
 import services.UserProfile;
 import services.WordLevelIssueStats;
-import services.SearchService;
-import actors.RepoProfileActor;
-import actors.RepoProfileActor.RepoProfileInfo;
-import services.RepoProfileService;
-import akka.actor.ActorRef;
-import scala.compat.java8.FutureConverters;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import static akka.pattern.Patterns.ask;
-import actors.WordLevelIssuesStatsActor;
-import actors.WordLevelIssuesStatsActor.IssueStatsInfo;
-import static akka.pattern.Patterns.ask;
-
-import services.RepoCommitStatsService;
 
 
 /**
@@ -75,56 +50,13 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
     HashMap<String, RepoResultsDisplay> forKeys = new HashMap<String, RepoResultsDisplay>();
 	LinkedHashMap<String, ArrayList<ApiResults>> resultsList = new LinkedHashMap<String, ArrayList<ApiResults>>();
     List<String> searchKeyList = new ArrayList<>();
-    //private Cache cache;
-	private final AssetsFinder assetsFinder;
-	private AsyncCacheApi cache;
-	HashMap<String,Object> data;
-
-	private HttpExecutionContext httpExecutionContext;
-	
-	
-	@Inject
-	private Materializer materializer;
-	@Inject
-	private ActorSystem actorSystem;
-	ActorRef repoProfileActor;
-	
-	@Inject
-	WordLevelIssueStats wordLevelIssueStats= new WordLevelIssueStats();
-	ActorRef statsActor;
-
-
 
 
 	@Inject
 	UserProfile usrPl = new UserProfile();
 
 	@Inject 
-	TopicService topicService = new TopicService();
-
-	@Inject
-	SearchService sr = new SearchService();
-
-	@Inject
-	RepoProfileService repoService = new RepoProfileService(ws);
-
-	@Inject 
-	RepoCommitStatsService repoCommitStats = new RepoCommitStatsService();
-
-	@Inject
-	public HomeController(HttpExecutionContext httpExecutionContext, AssetsFinder assetsFinder, SearchService githubService,  AsyncCacheApi cache, Materializer materializer, ActorSystem actorSystem) {
-
-		this.sr = sr;
-
-		this.cache=cache;
-		this.actorSystem=actorSystem;
-		this.materializer=materializer;
-		this.assetsFinder=assetsFinder;
-		this.httpExecutionContext=httpExecutionContext;
-		actorSystem.actorOf(TimeActor.props(), "timeActor");
-		//repoProfileActor = actorSystem.actorOf(RepoProfileActor.getProps());
-		statsActor = actorSystem.actorOf(WordLevelIssuesStatsActor.getProps());
-	}
+	TopicService tps = new TopicService();
 
     /**
      * An action that renders an HTML page with a search tab to search and display 10 latest GitHub repositories.
@@ -135,23 +67,18 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 
 	public Result index(Http.Request request) throws InterruptedException, ExecutionException {
 		boolean isSearchTermPresent = request.queryString("search").isPresent();
-		System.out.println(request.queryString("search"));
 		if (request.queryString("search").isPresent()) {
 			term =request.queryString("search").get();
-			resultsList = sr.getSearchResults(request.queryString("search").get()).toCompletableFuture().get();
+			resultsList = getResultsFromGitHubApi(request.queryString("search").get());
 			searchKeyList.clear();
 			searchKeyList.addAll(resultsList.keySet());
 			
-			return ok(views.html.index.render(request));
+			return ok(views.html.index.render(resultsList, searchKeyList, isSearchTermPresent));
 			
 		} else {
-			return ok(views.html.index.render(request));
+			return ok(views.html.index.render(resultsList, searchKeyList, isSearchTermPresent));
 		}
 
-	}
-
-	public WebSocket ws() {
-		return WebSocket.Json.accept(request -> ActorFlow.actorRef(out -> SupervisorActor.props(out, sr,usrPl,topicService, repoCommitStats, repoService, cache), actorSystem, materializer));
 	}
 	
 	/**
@@ -163,34 +90,22 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 	 * @throws InterruptedException
 	 */
 
-//	public LinkedHashMap<String, ArrayList<ApiResults>> getResultsFromGitHubApi(String query) throws InterruptedException, ExecutionException {
-//		// Added sort=updated in the url to get the lastest repositories on performing search
-//		// WSRequest req = ws.url("https://api.github.com/search/repositories?sort=updated&per_page=10&q=" + query);
-//		// Kept it here to check data and computations as best match results have good amount of data to test
-//		WSRequest cacheRequest = ws.url("https://api.github.com/search/repositories?sort=updated&per_page=10&q=" + query);
-//		cacheRequest.setMethod("GET");
-//		CompletionStage<JsonNode> res = cacheRequest.get().thenApply(r -> r.asJson());
-//		JsonNode nodeObject = Json.toJson(res.toCompletableFuture().get().findPath("items"));
-//		return formatter.retrieveArrayOfData(query, nodeObject);
-//	}
-
-//	public CompletionStage<Result> getResultsFromGitHubApi(String query,Http.Request request) throws ExecutionException, InterruptedException {
-//		boolean isSearchTermPresent = request.queryString("search").isPresent();
-//		if (request.queryString("search").isPresent()) {
-//			term = request.queryString("search").get();
-//			resultsList = sr.getSearchResults(request.queryString("search").get()).toCompletableFuture().get();
-//			searchKeyList.clear();
-//			searchKeyList.addAll(resultsList.keySet());
-//		}
-//		CompletionStage<Result> results = sr.getSearchResults(query).thenApplyAsync(repos->ok(views.html.index.render(repos,searchKeyList,isSearchTermPresent)));
-//		return results;
-//	}
+	public LinkedHashMap<String, ArrayList<ApiResults>> getResultsFromGitHubApi(String query) throws InterruptedException, ExecutionException {
+		// Added sort=updated in the url to get the lastest repositories on performing search
+		WSRequest req = ws.url("https://api.github.com/search/repositories?sort=updated&per_page=10&q=" + query);
+		// Kept it here to check data and computations as best match results have good amount of data to test
+		// WSRequest req = ws.url("https://api.github.com/search/repositories?per_page=10&q=" + query);
+		req.setMethod("GET");
+		CompletionStage<JsonNode> res = req.get().thenApply(r -> r.asJson());
+		JsonNode nodeObject = Json.toJson(res.toCompletableFuture().get().findPath("items"));
+		return formatter.retrieveArrayOfData(query, nodeObject);
+	}
 
 	/**
 	 * Makes API call with the query provided, repository data along with entityOption
 	 * @author Siddhartha Nanda
 	 * @param query	searched query
-	 * @param repoCollatedData Data	repository entire data to display
+	 * @param repoCollected Data	repository entire data to display
 	 * @param entityOption	Call API based on issue or collaborators
 	 * @return a entire collated data
 	 * @throws ExecutionException
@@ -198,9 +113,9 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 	 */
 	
 	public boolean getIssuesAndCollaboratorsDataFromGitHubApi(String query, RepositoryCollatedData repoCollatedData, String entityOption) throws InterruptedException, ExecutionException {
-			WSRequest req = ws.url(query);
-			req.setMethod("GET");
-			CompletionStage<JsonNode> res = req.get().thenApply(r -> r.asJson());
+		WSRequest req = ws.url(query);
+		req.setMethod("GET");
+		CompletionStage<JsonNode> res = req.get().thenApply(r -> r.asJson());
 		JsonNode nodeObject = Json.toJson(res.toCompletableFuture().get());
 		return repoCollatedData.getResponseBasedOnQueryParam(nodeObject, entityOption);
 	}
@@ -215,57 +130,40 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 	 * @throws ExecutionException
 	 * @throws InterruptedException
 	 */
-// 	public Result getIssuesAndCollaboratorsFromRepo1(String name,String repoName, String repoId) throws InterruptedException, ExecutionException {
-// 		for(JsonNode result:formatter.searchMasterData.get(term)) {
-// 			if(result.get("id").toString().equals(repoId)) {
-// 				jsonObject = result;
-// 			break;
-// 		}}
-// 		RepositoryCollatedData repoCollatedData = new RepositoryCollatedData(jsonObject,repoName, repoId);        	
-// 		getIssuesAndCollaboratorsDataFromGitHubApi(repoCollatedData.issue_Url, repoCollatedData, "issues");
+	public Result getIssuesAndCollaboratorsFromRepo(String name,String repoName, String repoId) throws InterruptedException, ExecutionException {
+		for(JsonNode result:formatter.searchMasterData.get(term)) {
+			if(result.get("id").toString().equals(repoId)) {
+				jsonObject = result;
+			break;
+		}}
+		RepositoryCollatedData repoCollatedData = new RepositoryCollatedData(jsonObject,repoName, repoId);        	
+		getIssuesAndCollaboratorsDataFromGitHubApi(repoCollatedData.issue_Url, repoCollatedData, "issues");
 
-// 	    getIssuesAndCollaboratorsDataFromGitHubApi(repoCollatedData.collaborators_url, repoCollatedData, "collaborators");
+	    getIssuesAndCollaboratorsDataFromGitHubApi(repoCollatedData.collaborators_url, repoCollatedData, "collaborators");
 	    
-// 	    issueStatisticsTitleList = new ArrayList<>();
-// 		issueStatisticsTitleList = repoCollatedData.issueTitleList;
-// //		forKeys = repoCommits(name, repoName);
-// 		List<String> keys = new ArrayList<String>(forKeys.keySet());
-// 		return ok(views.html.repo.render(repoCollatedData,repoCommits(name, repoName)));
-//     }
-
-	public CompletionStage<Result> getIssuesAndCollaboratorsFromRepo (String repoName, String repoId) throws InterruptedException, ExecutionException {
-	return FutureConverters
-		.toJava(ask(repoProfileActor, new RepoProfileInfo(repoName, "", repoId, repoService), 10000))
-		.thenApply(response -> {
-			RepositoryCollatedData repoCollatedData = (RepositoryCollatedData) response;
-			issueStatisticsTitleList = new ArrayList<>();
-			issueStatisticsTitleList = repoCollatedData.issueTitleList;
-			return ok(views.html.repo.render(repoCollatedData));
-		});
-}
+	    issueStatisticsTitleList = new ArrayList<>();
+		issueStatisticsTitleList = repoCollatedData.issueTitleList;
+//		forKeys = repoCommits(name, repoName);
+		List<String> keys = new ArrayList<String>(forKeys.keySet());
+		return ok(views.html.repo.render(repoCollatedData,repoCommits(name, repoName)));
+    }
 
 	/**
 	 * Displays the respective user profile with his repository list and details in a new web page
 	 * by clicking on any username from the search results on main web page.
 	 * @author Saswati Chowdhury
-	 * @param name Name of User
+	 * @param name
 	 * @return a new web page of the provided user Profile showing their name, id and repository list
 	 * @throws ExecutionException
 	 * @throws InterruptedException
 	 */
-	public CompletionStage<Result> userRepoList(String name) throws ExecutionException, InterruptedException, IOException {
-		CompletionStage<Result> results = usrPl.getUserProfile(name)
-				.thenApplyAsync(user -> ok(views.html.userResult.render(user,name)));
-		return results;
-
-//		User ur = usrPl.getUserProfile(name);
-//		return ok(views.html.userResult.render(ur,name));
+	public Result userRepoList(String name) throws ExecutionException, InterruptedException, IOException {
+		User ur = usrPl.getUserProfile(name);
+		return ok(views.html.userResult.render(ur));
 	}
 
-	
-	
 	/**
-	 * Display the word-level statistics of the issue titles using Actor -> WordLevelIssuesStatsActor,
+	 * Display the word-level statistics of the issue titles,
 	 * counting all unique words in descending order (by frequency of the words) by clicking on the Issue Statistics Button
 	 * @author Rajat Kumar
 	 * @param request
@@ -275,41 +173,30 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 	 */
 	
 	
-		
-	public CompletionStage<Result> issuesStats() throws InterruptedException, ExecutionException  {
-		
-		keyList=new ArrayList<>();
-		
-		if(!(issueStatisticsTitleList==null || issueStatisticsTitleList.isEmpty()))
-		{
+	
+		public Result issuesStats(Http.Request request ) throws ExecutionException, InterruptedException, IOException  {
 			
-			 return FutureConverters
-				 		.toJava(ask(statsActor, new IssueStatsInfo(issueStatisticsTitleList), 10000))
-				 		.thenApply(response -> {
-				 			
-				 			data = (HashMap<String,Object>) response;
-				 			IssuesWordLevelStatistics s= (IssuesWordLevelStatistics)data.get("list");
-				 			
-				 			
-
-				 			Iterator iterator = s.frequencyOfWords.keySet().iterator();
-				 			while (iterator.hasNext()) {
-				 				Object key = iterator.next();
-				 				keyList.add((String) key);
-				 			}
-				 			
-				 			return ok(views.html.StatsPage.render(s.frequencyOfWords, keyList));
-				 			
-				 		});}
-		
-		else {
 			
-			return CompletableFuture.supplyAsync(() -> {
-		 		return ok(views.html.NoIssues.render());
-		});}
+			keyList=new ArrayList<>();
+						
+			WordLevelIssueStats obj = new WordLevelIssueStats();	
+			
+			IssuesWordLevelStatistics res = obj.computeIssueWordLevelStats(issueStatisticsTitleList);
+			
+			for (String key: res.frequencyOfWords.keySet()){
+		            
+		             keyList.add(key);
+		             
+			}
+			
+			if(!res.frequencyOfWords.isEmpty())
+			return ok(views.html.StatsPage.render(res.frequencyOfWords, keyList));
+			
+			else 
+				return ok(views.html.NoIssues.render());
+			
 		
-		
-	}
+		}
 		
 		
 		/**
@@ -416,8 +303,8 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 				.map(RepoResults::getDel)
 				.mapToInt(value -> value).average().orElse(0);
 				
-				RepoResultsDisplay rslt = new RepoResultsDisplay(userStr,min,max,avg,delMin,delMax,delAvg, 100);
-				rs.add(new RepoResultsDisplay(userStr,min,max,avg,delMin,delMax,delAvg, 100));
+				RepoResultsDisplay rslt = new RepoResultsDisplay(userStr,min,max,avg,delMin,delMax,delAvg);
+				rs.add(new RepoResultsDisplay(userStr,min,max,avg,delMin,delMax,delAvg));
 				System.out.println("Committer "+rslt.getUser()+"addition-min "+rslt.getMin()+"addition-man"+rslt.getMax()+" addition-avg"+rslt.getAvg()
 				+" deletion-min "+rslt.getDelMin()+"deletion-max "+rslt.getDelMax()+"deletion-avg"+rslt.getDelAvg());
 			}
@@ -438,18 +325,10 @@ public class HomeController extends Controller implements WSBodyReadables, WSBod
 	 * @throws IOException
 	 */
 
-//	public Result getTopics( String topic) throws ExecutionException, InterruptedException, IOException{
-//		List<TopicResult> list = tps.getRepoByTopics(topic);
-//        return ok(views.html.topic.render(list,topic));
-//			}
-//
-
-	public CompletionStage<Result> getTopics( String topic) throws ExecutionException, InterruptedException, IOException{
-		//List<TopicResult> list = tps.getRepoByTopics(topic);
-		CompletionStage<Result> results= topicService.getRepoByTopics(topic)
-				.thenApplyAsync(list->ok(views.html.topic.render(list,topic)));
-		System.out.println("results"+ results);
-		return results;
-	}
+	public Result getTopics( String topic) throws ExecutionException, InterruptedException, IOException{
+		List<TopicResult> list = tps.getRepoByTopics(topic); 
+        return ok(views.html.topic.render(list,topic));	 
+			}
+		
 
 }
